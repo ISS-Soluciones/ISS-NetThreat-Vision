@@ -22,10 +22,12 @@ class NetThreatApp:
     text = "#17324D"
     muted = "#60788C"
 
-    def __init__(self, root: tk.Tk) -> None:
+     def __init__(self, root: tk.Tk) -> None:
         self.root = root
         self.root.title("NetThreat Vision")
-        self.root.geometry("760x560")
+        ws = root.winfo_screenwidth()
+        hs = root.winfo_screenheight()
+        self.root.geometry(f"760x560+{int(ws/2 - 760/2)}+{int(hs/2 - 540/2)}")
         self.root.minsize(620, 500)
         self.root.configure(bg=self.background)
 
