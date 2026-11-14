@@ -22,7 +22,7 @@ class NetThreatApp:
     text = "#17324D"
     muted = "#60788C"
 
-     def __init__(self, root: tk.Tk) -> None:
+    def __init__(self, root: tk.Tk) -> None:
         self.root = root
         self.root.title("NetThreat Vision")
         ws = root.winfo_screenwidth()
