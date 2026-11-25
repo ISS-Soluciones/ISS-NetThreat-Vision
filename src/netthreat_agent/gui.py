@@ -27,7 +27,7 @@ class NetThreatApp:
         self.root.title("NetThreat Vision")
         ws = root.winfo_screenwidth()
         hs = root.winfo_screenheight()
-        self.root.geometry(f"760x560+{int(ws/2 - 760/2)}+{int(hs/2 - 540/2)}")
+        self.root.geometry(f"760x560+{int(ws/2 - 760/2)}+{int(hs/2 - 560/2)}")
         self.root.minsize(620, 500)
         self.root.configure(bg=self.background)
 
