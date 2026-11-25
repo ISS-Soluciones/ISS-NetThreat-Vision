@@ -75,7 +75,7 @@ def _html_document(report_json: str) -> str:
     <div class="grid" id="metrics"></div>
     <section><h2>Hallazgos locales</h2><div class="stack" id="findings"></div></section>
     <section><h2>Interpretación de IA</h2><div id="ai-analysis"></div></section>
-    <section><h2>Microsoft Defender</h2><div id="defender"></div></section>
+    <section id="defender-section"><h2>Microsoft Defender</h2><div id="defender"></div></section>
     <div class="columns">
       <section><h2>Procesos observados</h2><div class="table-wrap" id="processes"></div></section>
       <section><h2>Conexiones observadas</h2><div class="table-wrap" id="connections"></div></section>
@@ -97,16 +97,23 @@ def _html_document(report_json: str) -> str:
     document.getElementById("risk-title").textContent = `Estado: ${risk || "Indeterminado"}`;
     document.getElementById("summary").textContent = ai && ai.status === "ready" ? ai.summary : "Se recopilaron indicadores locales. Sin interpretación de IA; consulta los hallazgos y su evidencia.";
     const metrics = document.getElementById("metrics");
-    [["Procesos", report.processes.length], ["Conexiones", report.connections.length], ["Registros Defender", defender ? defender.detections.length : "N/D"], ["Hallazgos", (report.findings || []).length]].forEach(([label, value]) => { const card = node("div", undefined, "metric"); card.append(node("div", label, "metric-label"), node("div", String(value), "metric-value")); metrics.append(card); });
+    const metricData = [["Procesos", report.processes.length], ["Conexiones", report.connections.length]];
+    if (defender) metricData.push(["Registros Defender", defender.detections.length]);
+    metricData.push(["Hallazgos", (report.findings || []).length]);
+    metricData.forEach(([label, value]) => { const card = node("div", undefined, "metric"); card.append(node("div", label, "metric-label"), node("div", String(value), "metric-value")); metrics.append(card); });
     const findings = document.getElementById("findings");
     if (!(report.findings || []).length) findings.append(node("p", "No se generaron hallazgos con las comprobaciones disponibles.", "empty"));
     (report.findings || []).forEach(item => { const card = node("article", undefined, `finding ${item.severity}`); const title = node("h3"); title.append(node("span", item.title), node("span", item.severity, "tag")); card.append(title, node("p", item.detail), node("p", `Confianza: ${item.confidence}`, "meta")); if (item.evidence.length) card.append(node("h3", "Evidencia"), list(item.evidence)); if (item.recommended_actions.length) card.append(node("h3", "Acciones sugeridas"), list(item.recommended_actions)); findings.append(card); });
     const aiSection = document.getElementById("ai-analysis");
     if (ai && ai.status === "ready") { aiSection.append(node("p", `Modelo: ${ai.model} · Riesgo estimado: ${ai.risk_level}`, "meta"), node("h3", "Observaciones"), list(ai.observations), node("h3", "Acciones inmediatas"), list(ai.immediate_actions), node("h3", "Alternativas"), list(ai.alternatives), node("h3", "Prevención"), list(ai.prevention), node("h3", "Limitaciones"), list(ai.caveats)); }
     else { aiSection.append(node("p", ai && ai.error ? ai.error : "La interpretación de IA no se solicitó."), node("p", "Los hallazgos locales están disponibles aunque Groq no responda.", "meta")); }
-    const defenderSection = document.getElementById("defender");
-    if (!defender || !defender.available) defenderSection.append(node("p", defender && defender.error ? defender.error : "No se obtuvo información de Defender.", "empty"));
-    else { defenderSection.append(node("p", `Antivirus: ${defender.antivirus_enabled ? "activo" : "inactivo o desconocido"} · Protección en tiempo real: ${defender.real_time_protection_enabled ? "activa" : "inactiva o desconocida"}`), node("p", `Última actualización de firmas: ${defender.signature_last_updated || "no disponible"}`), node("p", `Análisis rápido: ${defender.quick_scan_status}`)); if (defender.error) defenderSection.append(node("p", defender.error, "error")); }
+    const defenderSection = document.getElementById("defender-section");
+    if (!defender) defenderSection.remove();
+    else {
+      const defenderContent = document.getElementById("defender");
+      if (!defender.available) defenderContent.append(node("p", defender.error || "No se obtuvo información de Defender.", "empty"));
+      else { defenderContent.append(node("p", `Antivirus: ${defender.antivirus_enabled ? "activo" : "inactivo o desconocido"} · Protección en tiempo real: ${defender.real_time_protection_enabled ? "activa" : "inactiva o desconocida"}`), node("p", `Última actualización de firmas: ${defender.signature_last_updated || "no disponible"}`), node("p", `Análisis rápido: ${defender.quick_scan_status}`)); if (defender.error) defenderContent.append(node("p", defender.error, "error")); }
+    }
     function renderTable(targetId, headers, rows) { const target = document.getElementById(targetId); if (!rows.length) { target.append(node("p", "No hay observaciones.", "empty")); return; } const table = node("table"); const head = node("thead"); const headerRow = node("tr"); headers.forEach(value => headerRow.append(node("th", value))); head.append(headerRow); const body = node("tbody"); rows.slice(0, 100).forEach(values => { const row = node("tr"); values.forEach(value => row.append(node("td", value || "—"))); body.append(row); }); table.append(head, body); target.append(table); if (rows.length > 100) target.append(node("p", `Se muestran 100 de ${rows.length}; el JSON contiene todos los registros.`, "meta")); }
     renderTable("processes", ["PID", "Proceso", "Ruta"], report.processes.map(item => [String(item.pid), item.name, item.executable_path]));
     renderTable("connections", ["Proceso", "Protocolo", "Estado", "Local", "Remoto"], report.connections.map(item => [item.process_name || String(item.pid || "—"), item.protocol, item.status, `${item.local_address || "—"}:${item.local_port || "—"}`, item.remote_address ? `${item.remote_address}:${item.remote_port || "—"}` : "—"]));

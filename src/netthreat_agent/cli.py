@@ -1,5 +1,6 @@
 import argparse
 import json
+import platform
 from pathlib import Path
 
 from .dashboard import write_dashboard
@@ -14,11 +15,13 @@ def build_parser() -> argparse.ArgumentParser:
     scan = commands.add_parser("scan", help="Genera una captura local de solo lectura")
     scan.add_argument("--consent", action="store_true", help="Confirma autorización para inspeccionar este equipo")
     scan.add_argument("--output", type=Path, default=Path("report.json"), help="Ruta del reporte JSON")
-    scan.add_argument(
-        "--defender-quick-scan",
-        action="store_true",
-        help="Solicita un análisis rápido nativo de Microsoft Defender",
-    )
+    scan.set_defaults(defender_quick_scan=False)
+    if platform.system() == "Windows":
+        scan.add_argument(
+            "--defender-quick-scan",
+            action="store_true",
+            help="Solicita un análisis rápido nativo de Microsoft Defender",
+        )
     scan.add_argument(
         "--interpret-with-groq",
         action="store_true",

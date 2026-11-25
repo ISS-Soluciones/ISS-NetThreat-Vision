@@ -35,6 +35,7 @@ class NetThreatApp:
         self.quick_scan = tk.BooleanVar(value=False)
         self.groq_consent = tk.BooleanVar(value=False)
         self.include_paths = tk.BooleanVar(value=False)
+        self.is_windows = platform.system() == "Windows"
         self.results: queue.Queue[tuple[str, object]] = queue.Queue()
         self._build_ui()
 
@@ -87,7 +88,7 @@ class NetThreatApp:
             cursor="hand2",
         ).pack(anchor="w", pady=(0, 10))
 
-        if platform.system() == "Windows":
+        if self.is_windows:
             tk.Checkbutton(
                 content,
                 text="Solicitar un análisis rápido de Microsoft Defender",
@@ -218,7 +219,8 @@ class NetThreatApp:
             return
         self.scan_button.configure(state="disabled", text="Escaneando...")
         self.consent_check.configure(state="disabled")
-        self.status.set("Recopilando señales locales y consultando Defender...")
+        scan_status = "Recopilando señales locales y consultando Defender..." if self.is_windows else "Recopilando señales locales..."
+        self.status.set(scan_status)
         threading.Thread(
             target=self._scan_in_background,
             args=(self.include_paths.get(), self.quick_scan.get(), self.groq_consent.get()),

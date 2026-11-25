@@ -1,4 +1,6 @@
 import json
+import os
+import platform
 from datetime import datetime
 from pathlib import Path
 
@@ -6,7 +8,14 @@ from .models import ScanReport
 
 
 def default_report_directory() -> Path:
-    return Path.home() / "NetThreatVision" / "reports"
+    if platform.system() == "Windows":
+        base_directory = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
+        application_directory = "NetThreatVision"
+    else:
+        configured_data_home = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local" / "share"))
+        base_directory = configured_data_home if configured_data_home.is_absolute() else Path.home() / ".local" / "share"
+        application_directory = "netthreat-vision"
+    return base_directory / application_directory / "reports"
 
 
 def save_report(
