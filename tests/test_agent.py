@@ -1,10 +1,12 @@
 import json
 import io
+import sys
 from datetime import datetime
 import urllib.error
 from unittest.mock import patch
 
-from netthreat_agent.cli import main
+from netthreat_agent import report_store, scanner
+from netthreat_agent.cli import build_parser, main
 from netthreat_agent.dashboard import write_dashboard
 from netthreat_agent.findings import build_findings
 from netthreat_agent.groq_client import (
@@ -261,3 +263,50 @@ def test_groq_input_stays_under_budget_for_large_reports():
     assert '"processes":600' in input_text
     report_json = input_text.split("REPORTE:\n", 1)[1]
     assert len(json.loads(report_json)["processes"]) < 600
+
+
+def test_linux_scan_does_not_import_or_run_windows_security(monkeypatch):
+    monkeypatch.setattr(scanner.platform, "system", lambda: "Linux")
+    monkeypatch.setattr(
+        scanner,
+        "collect_snapshot",
+        lambda **_kwargs: ScanReport.create(
+            system=SystemObservation("Linux", "6.x", "x86_64"),
+            processes=[],
+            connections=[],
+            warnings=[],
+        ),
+    )
+    monkeypatch.setitem(sys.modules, "netthreat_agent.windows_security", None)
+
+    report = scanner.run_security_scan(start_quick_scan=True)
+
+    assert report.system.operating_system == "Linux"
+    assert report.defender is None
+    assert report.findings == []
+
+
+def test_cli_exposes_defender_scan_flag_only_on_windows(monkeypatch):
+    monkeypatch.setattr("netthreat_agent.cli.platform.system", lambda: "Linux")
+    linux_args = build_parser().parse_args(["scan", "--consent"])
+    assert linux_args.defender_quick_scan is False
+    try:
+        build_parser().parse_args(["scan", "--consent", "--defender-quick-scan"])
+    except SystemExit as error:
+        assert error.code == 2
+    else:
+        raise AssertionError("Linux CLI must not expose Defender scan")
+
+    monkeypatch.setattr("netthreat_agent.cli.platform.system", lambda: "Windows")
+    windows_args = build_parser().parse_args(["scan", "--consent", "--defender-quick-scan"])
+    assert windows_args.defender_quick_scan is True
+
+
+def test_report_directory_uses_native_windows_and_linux_locations(tmp_path, monkeypatch):
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "local"))
+    monkeypatch.setattr(report_store.platform, "system", lambda: "Windows")
+    assert report_store.default_report_directory() == tmp_path / "local" / "NetThreatVision" / "reports"
+
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "xdg-data"))
+    monkeypatch.setattr(report_store.platform, "system", lambda: "Linux")
+    assert report_store.default_report_directory() == tmp_path / "xdg-data" / "netthreat-vision" / "reports"
