@@ -1,13 +1,13 @@
-# NetThreat Vision - agente local para Windows y Linux
+# NetThreat Vision - agente local
 
-Este folder contiene el componente que se ejecuta en el equipo auditado. El navegador no puede inspeccionar procesos ni conexiones del sistema operativo; por eso el flujo es híbrido. El agente detecta Windows o Linux y habilita únicamente las funciones disponibles para ese sistema:
+Este folder contiene el componente que se ejecuta en el equipo auditado. El navegador no puede inspeccionar procesos ni conexiones del sistema operativo; por eso el flujo es híbrido. El agente detecta Windows, Linux o macOS y habilita únicamente las funciones disponibles para ese sistema:
 
 ```text
 Agente local (con consentimiento) -> reporte JSON -> API backend -> dashboard
                                                 -> motor de análisis/IA
 ```
 
-El agente realiza una captura local de solo lectura. En Windows consulta el estado e historial de Microsoft Defender y, opcionalmente, puede solicitar un análisis rápido nativo. En Linux no importa ni invoca el módulo de Defender y no muestra sus opciones. No bloquea puertos, termina procesos, instala servicios ni inicia escaneos contra otros equipos.
+El agente realiza una captura local de solo lectura. En Windows consulta el estado e historial de Microsoft Defender y, opcionalmente, puede solicitar un análisis rápido nativo. También permite iniciar un análisis puntual de amenazas: en Windows se puede elegir entre Microsoft Defender Full Scan y un análisis ClamAV rápido de ubicaciones frecuentes del perfil; en Linux/macOS se usa ClamAV recursivo. El usuario elige el sistema operativo en la interfaz; la selección debe coincidir con el equipo local. No bloquea puertos ni inicia escaneos contra otros equipos.
 
 ## Alcance actual
 
@@ -15,11 +15,14 @@ El agente realiza una captura local de solo lectura. En Windows consulta el esta
 - Recoge nombres/PID de procesos y sockets TCP/UDP visibles al usuario que ejecuta el agente.
 - Las rutas de ejecutables solo se incluyen al marcar la opción de la interfaz o con `--include-executable-paths`.
 - En Windows consulta Defender, sus firmas y hasta 50 registros de detección; el Quick Scan está desmarcado por defecto.
-- En Linux omite por completo la integración Defender y sus métricas en el dashboard.
+- En Linux y macOS omite por completo la integración Defender y sus métricas en el dashboard.
+- El análisis de amenazas es un flujo independiente: en Windows permite elegir Defender Full Scan o ClamAV rápido (Descargas, Escritorio, Documentos, temporales y carpeta de inicio del perfil); Linux/macOS usan ClamAV recursivo. El análisis rápido tiene menor cobertura y no revisa el sistema completo. ClamAV debe instalarse y tener firmas disponibles; el wizard de instalación aún está pendiente.
+- Los resultados del análisis de amenazas se guardan en JSON y HTML propios. ClamAV puede ofrecer mover detecciones a cuarentena después de una confirmación; Defender administra su propia remediación.
+- Durante el análisis de amenazas, la interfaz muestra una barra animada y el tiempo transcurrido. No muestra un porcentaje porque los motores usados no exponen un progreso global fiable.
 - Genera hallazgos de postura y evidencia conocida; los procesos y conexiones no se clasifican por sí mismos como maliciosos.
 - Puede crear un reporte HTML autónomo junto al JSON, sin servicios externos ni recursos web.
 
-Esto ofrece señales puntuales, no vigilancia continua. El historial de Defender no confirma que una amenaza siga activa y un análisis rápido iniciado no se considera finalizado. No evalúa CVE/parches ni usa YARA en esta etapa. Los hallazgos deben verificarse antes de recomendar acciones.
+Esto ofrece señales puntuales, no vigilancia continua. El historial de Defender no confirma que una amenaza siga activa. El análisis de amenazas puede tardar horas; los errores de acceso o una ejecución incompleta se reportan y no equivalen a un resultado limpio. No evalúa CVE/parches ni usa YARA en esta etapa. Las detecciones deben verificarse antes de recomendar acciones.
 
 ## Ejecutar
 
@@ -78,7 +81,7 @@ El cliente envía `Accept: application/json` y un `User-Agent` explícito. Si la
 
 `GROQ_MODEL` es opcional; `openai/gpt-oss-120b` es el modelo predeterminado y se puede cambiar si tu cuenta usa otro identificador disponible. La clave se envía solo en el encabezado HTTPS y nunca se escribe en el JSON o el HTML. Si se marca la casilla de Groq, se envía una selección limitada del reporte (estado del sistema, hallazgos, hasta 80 procesos y 120 conexiones, y registros de Defender) al servicio externo de Groq. No marques esa opción si no autorizas compartir esos datos.
 
-También se puede pedir la interpretación desde la terminal con `--interpret-with-groq`; el HTML se puede abrir con `--open-dashboard`. El análisis rápido nativo se solicita por separado con `--defender-quick-scan`, opción disponible solo en Windows. ClamAV se añadirá después y aún no está disponible en ninguna plataforma.
+También se puede pedir la interpretación desde la terminal con `--interpret-with-groq`; el HTML se puede abrir con `--open-dashboard`. El análisis rápido nativo se solicita por separado con `--defender-quick-scan`, opción disponible solo en Windows. El análisis de amenazas está disponible desde la interfaz gráfica.
 
 La captura también puede iniciarse desde la terminal:
 
@@ -102,6 +105,12 @@ El consentimiento se solicita explícitamente mediante `--consent`. El reporte p
 - `src/netthreat_agent/groq_client.py`: interpretación opt-in con clave de entorno.
 - `src/netthreat_agent/dashboard.py`: HTML autónomo del reporte.
 - `src/netthreat_agent/models.py`: contrato JSON versionado 1.1.
+- `src/netthreat_agent/threat_scanner.py`: selección del proveedor según sistema operativo y motor elegido.
+- `src/netthreat_agent/windows_threat_scanner.py`: análisis completo y resultados de Microsoft Defender.
+- `src/netthreat_agent/clamav_scanner.py`: análisis puntual con ClamAV y cuarentena confirmada por el usuario.
+- `src/netthreat_agent/threat_models.py`: contrato versionado para los reportes de amenazas.
+- `src/netthreat_agent/threat_report_store.py`: almacenamiento independiente de los reportes de amenazas.
+- `src/netthreat_agent/threat_dashboard.py`: HTML autónomo del análisis de amenazas.
 - `tests/`: pruebas del contrato y de la interfaz.
 
 ## Siguientes etapas
