@@ -530,7 +530,6 @@ class NetThreatApp:
         minutes, seconds = divmod(remainder, 60)
         self.progress_status.set(
             f"Análisis en curso · Tiempo transcurrido: {hours:02}:{minutes:02}:{seconds:02}. "
-            "El motor no informa un porcentaje fiable."
         )
         self._progress_after_id = self.root.after(1000, self._update_progress_elapsed)
 
