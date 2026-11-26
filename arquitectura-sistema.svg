@@ -1,0 +1,236 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1400" viewBox="0 0 1800 1400" role="img" aria-labelledby="title description">
+  <title id="title">Arquitectura actual de NetThreat Vision</title>
+  <desc id="description">Diagrama de las entradas, los flujos preventivo y de amenazas, los motores por sistema operativo, los reportes locales, la integración opcional con Groq y los límites actuales del agente.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L10,5 L0,10 z" fill="#52718c"/>
+    </marker>
+    <marker id="arrow-blue" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L10,5 L0,10 z" fill="#1677c8"/>
+    </marker>
+    <marker id="arrow-green" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L10,5 L0,10 z" fill="#18865b"/>
+    </marker>
+    <style>
+      text { font-family: "Segoe UI", Arial, sans-serif; fill: #17324d; }
+      .title { font-size: 34px; font-weight: 700; }
+      .subtitle { font-size: 16px; fill: #60788c; }
+      .section-title { font-size: 21px; font-weight: 700; }
+      .card-title { font-size: 17px; font-weight: 700; }
+      .body { font-size: 14px; }
+      .small { font-size: 12px; fill: #526b80; }
+      .tiny { font-size: 11px; fill: #60788c; }
+      .mono { font-family: Consolas, "Courier New", monospace; font-size: 12px; fill: #294a66; }
+      .lane { fill: #ffffff; stroke: #d7e4ed; stroke-width: 1.5; }
+      .card { fill: #ffffff; stroke: #bfd2e0; stroke-width: 1.4; }
+      .entry { fill: #f7fbfe; stroke: #b7d5e8; stroke-width: 1.5; }
+      .preventive { fill: #eef7fd; stroke: #1677c8; stroke-width: 1.5; }
+      .threat { fill: #f0f8f4; stroke: #18865b; stroke-width: 1.5; }
+      .external { fill: #fff9ed; stroke: #d6a64c; stroke-width: 1.5; }
+      .muted-card { fill: #f5f7f9; stroke: #c8d1d8; stroke-width: 1.3; }
+      .line { fill: none; stroke: #52718c; stroke-width: 2; marker-end: url(#arrow); }
+      .line-blue { fill: none; stroke: #1677c8; stroke-width: 2.2; marker-end: url(#arrow-blue); }
+      .line-green { fill: none; stroke: #18865b; stroke-width: 2.2; marker-end: url(#arrow-green); }
+      .optional { fill: none; stroke: #c18b2d; stroke-width: 2; stroke-dasharray: 7 6; marker-end: url(#arrow); }
+      .divider { stroke: #dbe7ef; stroke-width: 1; }
+    </style>
+  </defs>
+
+  <rect width="1800" height="1400" fill="#f3f7fa"/>
+
+  <text x="60" y="58" class="title">NetThreat Vision · Arquitectura actual</text>
+  <text x="60" y="88" class="subtitle">Agente local de captura preventiva y análisis puntual de amenazas · vista de componentes y flujo de datos</text>
+
+  <!-- Entry points and optional external interpretation -->
+  <rect x="50" y="118" width="660" height="164" rx="12" class="entry"/>
+  <text x="76" y="151" class="card-title">Interfaz de escritorio · <tspan class="mono">gui.py</tspan></text>
+  <text x="76" y="180" class="body">Consentimiento independiente para cada análisis</text>
+  <text x="76" y="204" class="body">Selector del SO y, en Windows, motor de amenazas</text>
+  <text x="76" y="228" class="body">Ejecución en hilo de fondo · progreso indeterminado · abre HTML local</text>
+  <text x="76" y="257" class="small">Dos acciones: escaneo preventivo / análisis de amenazas</text>
+
+  <rect x="735" y="118" width="440" height="164" rx="12" class="entry"/>
+  <text x="761" y="151" class="card-title">Interfaz de terminal · <tspan class="mono">cli.py</tspan></text>
+  <text x="761" y="180" class="body">Comando <tspan class="mono">scan</tspan> con consentimiento explícito</text>
+  <text x="761" y="204" class="body">Puede generar captura preventiva y HTML</text>
+  <text x="761" y="228" class="body"><tspan class="mono">groq-test</tspan> prueba conectividad con texto fijo</text>
+  <text x="761" y="257" class="small">El análisis puntual de amenazas se inicia desde la GUI</text>
+
+  <rect x="1200" y="118" width="550" height="164" rx="12" class="external"/>
+  <text x="1226" y="151" class="card-title">Servicio externo opcional · API Groq</text>
+  <text x="1226" y="180" class="body">HTTPS · solo si se configura <tspan class="mono">GROQ_API_KEY</tspan></text>
+  <text x="1226" y="204" class="body">Recibe telemetría resumida con consentimiento explícito</text>
+  <text x="1226" y="228" class="body">Devuelve interpretación para adjuntarla al reporte preventivo</text>
+  <text x="1226" y="257" class="small">No es necesario para los reportes locales</text>
+
+  <!-- Main flow lanes -->
+  <rect x="50" y="316" width="830" height="594" rx="14" class="lane"/>
+  <rect x="50" y="316" width="830" height="54" rx="14" fill="#eaf5fc"/>
+  <path d="M50 356 H880" class="divider"/>
+  <text x="76" y="351" class="section-title" fill="#1677c8">1 · Escaneo preventivo</text>
+  <text x="570" y="349" class="small">captura puntual · no inspecciona contenido de archivos</text>
+
+  <rect x="76" y="409" width="214" height="91" rx="10" class="preventive"/>
+  <text x="94" y="438" class="card-title">Orquestador</text>
+  <text x="94" y="462" class="mono">scanner.py</text>
+  <text x="94" y="484" class="small">run_security_scan()</text>
+
+  <rect x="338" y="397" width="230" height="105" rx="10" class="card"/>
+  <text x="356" y="426" class="card-title">Recolección local</text>
+  <text x="356" y="450" class="mono">collector.py · psutil</text>
+  <text x="356" y="473" class="small">SO/arquitectura, PID y proceso</text>
+  <text x="356" y="491" class="small">conexiones TCP/UDP visibles</text>
+
+  <rect x="338" y="528" width="230" height="110" rx="10" class="card"/>
+  <text x="356" y="557" class="card-title">Consulta Windows</text>
+  <text x="356" y="581" class="mono">windows_security.py</text>
+  <text x="356" y="604" class="small">PowerShell · estado, firmas,</text>
+  <text x="356" y="622" class="small">historial y Quick Scan opcional</text>
+
+  <rect x="616" y="397" width="236" height="105" rx="10" class="card"/>
+  <text x="634" y="426" class="card-title">Hallazgos locales</text>
+  <text x="634" y="450" class="mono">findings.py</text>
+  <text x="634" y="473" class="small">Postura Defender y evidencia</text>
+  <text x="634" y="491" class="small">no clasifica procesos como malware</text>
+
+  <rect x="616" y="528" width="236" height="110" rx="10" class="preventive"/>
+  <text x="634" y="557" class="card-title">Contrato preventivo</text>
+  <text x="634" y="581" class="mono">models.py · ScanReport 1.1</text>
+  <text x="634" y="604" class="small">Procesos, conexiones, alertas,</text>
+  <text x="634" y="622" class="small">advertencias y limitaciones</text>
+
+  <rect x="76" y="680" width="388" height="90" rx="10" class="muted-card"/>
+  <text x="94" y="710" class="card-title">Cobertura preventiva</text>
+  <text x="94" y="735" class="small">Windows: consulta Defender; Linux/macOS lo omiten.</text>
+  <text x="94" y="756" class="small">Rutas opt-in · Quick Scan se solicita, no se confirma</text>
+
+  <rect x="484" y="680" width="368" height="90" rx="10" class="external"/>
+  <text x="502" y="710" class="card-title">Interpretación IA opcional</text>
+  <text x="502" y="735" class="mono">groq_client.py → API Groq por HTTPS</text>
+  <text x="502" y="756" class="small">Filtra y limita datos; local funciona sin este paso</text>
+
+  <rect x="76" y="790" width="776" height="88" rx="10" class="card"/>
+  <text x="96" y="821" class="card-title">Persistencia y visualización preventiva</text>
+  <text x="96" y="847" class="mono">report_store.py → JSON · dashboard.py → HTML autónomo</text>
+  <text x="96" y="867" class="small">Salida local; el HTML se abre en el navegador con o sin interpretación de Groq.</text>
+
+  <!-- Preventive flow arrows -->
+  <path d="M260 282 V390 H183 V409" class="line-blue"/>
+  <path d="M940 282 V382 H183 V409" class="line-blue"/>
+  <path d="M290 454 H338" class="line-blue"/>
+  <path d="M290 470 H314 V583 H338" class="line-blue"/>
+  <path d="M568 449 H590 V600 H616" class="line-blue"/>
+  <path d="M568 581 H592 V470 H616" class="line"/>
+  <path d="M734 502 V528" class="line-blue"/>
+  <path d="M734 638 V680" class="optional"/>
+  <path d="M668 770 V790" class="line-blue"/>
+  <path d="M852 583 H868 V779 H840 V790" class="line-blue"/>
+  <path d="M460 502 V528" class="line"/>
+
+  <path d="M852 725 H895 V300 H1475 V282" class="optional"/>
+
+  <!-- Threat scan lane -->
+  <rect x="920" y="316" width="830" height="594" rx="14" class="lane"/>
+  <rect x="920" y="316" width="830" height="54" rx="14" fill="#eaf6ef"/>
+  <path d="M920 356 H1750" class="divider"/>
+  <text x="946" y="351" class="section-title" fill="#18865b">2 · Análisis puntual de amenazas</text>
+  <text x="1470" y="349" class="small">solo equipo local</text>
+
+  <rect x="946" y="409" width="212" height="92" rx="10" class="threat"/>
+  <text x="964" y="438" class="card-title">Enrutamiento</text>
+  <text x="964" y="462" class="mono">threat_scanner.py</text>
+  <text x="964" y="484" class="small">valida SO local y motor elegido</text>
+
+  <rect x="1200" y="394" width="220" height="82" rx="10" class="card"/>
+  <text x="1218" y="424" class="card-title">Windows · Defender</text>
+  <text x="1218" y="450" class="mono">windows_threat_scanner.py</text>
+  <text x="1218" y="468" class="tiny">Full Scan · PowerShell · espera fin</text>
+
+  <rect x="1200" y="494" width="220" height="92" rx="10" class="card"/>
+  <text x="1218" y="523" class="card-title">Windows · ClamAV</text>
+  <text x="1218" y="547" class="mono">clamav_scanner.py</text>
+  <text x="1218" y="569" class="small">rápido: carpetas del perfil</text>
+  <text x="1218" y="582" class="tiny">Shell Folders + temporales</text>
+
+  <rect x="1200" y="606" width="220" height="83" rx="10" class="card"/>
+  <text x="1218" y="636" class="card-title">Linux / macOS</text>
+  <text x="1218" y="660" class="mono">clamav_scanner.py</text>
+  <text x="1218" y="680" class="small">ClamAV recursivo</text>
+
+  <rect x="1470" y="435" width="244" height="135" rx="10" class="threat"/>
+  <text x="1488" y="465" class="card-title">Motor ClamAV local</text>
+  <text x="1488" y="490" class="mono">clamscan · firmas locales</text>
+  <text x="1488" y="514" class="small">sin porcentaje global fiable</text>
+  <text x="1488" y="537" class="small">errores/archivos bloqueados</text>
+  <text x="1488" y="558" class="tiny">FreshClam administra firmas aparte</text>
+
+  <rect x="1470" y="600" width="244" height="89" rx="10" class="card"/>
+  <text x="1488" y="630" class="card-title">Microsoft Defender</text>
+  <text x="1488" y="655" class="small">remediación bajo control de Defender</text>
+  <text x="1488" y="677" class="tiny">historial no prueba amenaza activa</text>
+
+  <rect x="946" y="730" width="768" height="60" rx="10" class="threat"/>
+  <text x="966" y="756" class="card-title">Contrato de amenazas · <tspan class="mono">threat_models.py · ThreatScanReport 1.0</tspan></text>
+  <text x="966" y="779" class="small">Estado · alcance · motor/firmas · detecciones · advertencias · tiempos</text>
+
+  <rect x="946" y="806" width="768" height="72" rx="10" class="card"/>
+  <text x="966" y="835" class="card-title">Persistencia y reporte de amenazas</text>
+  <text x="966" y="860" class="mono">threat_report_store.py → JSON · threat_dashboard.py → HTML local autónomo</text>
+
+  <!-- Threat arrows -->
+  <path d="M445 282 V382 H1052 V409" class="line-green"/>
+  <path d="M1158 455 H1180 V435 H1200" class="line-green"/>
+  <path d="M1158 461 H1178 V540 H1200" class="line-green"/>
+  <path d="M1158 478 H1182 V648 H1200" class="line-green"/>
+  <path d="M1420 435 H1446 V644 H1470" class="line"/>
+  <path d="M1420 540 H1470" class="line-green"/>
+  <path d="M1420 648 H1450 V540 H1470" class="line"/>
+  <path d="M1714 550 H1732 V712 H1330 V730" class="line-green"/>
+  <path d="M1592 689 V712" class="line"/>
+  <path d="M1330 790 V806" class="line-green"/>
+
+  <!-- Outputs / optional remediation and AI -->
+  <rect x="50" y="944" width="830" height="171" rx="14" class="lane"/>
+  <text x="76" y="979" class="section-title">Salidas y acciones</text>
+  <rect x="76" y="998" width="366" height="88" rx="10" class="card"/>
+  <text x="94" y="1028" class="card-title">Reporte preventivo</text>
+  <text x="94" y="1052" class="mono">reporte_*.json + reporte_*.html</text>
+  <text x="94" y="1075" class="small">carpeta local de reportes</text>
+  <rect x="474" y="998" width="378" height="88" rx="10" class="muted-card"/>
+  <text x="492" y="1028" class="card-title">Apertura del resultado</text>
+  <text x="492" y="1052" class="mono">GUI → navegador → HTML local</text>
+  <text x="492" y="1075" class="small">sin servidor web ni recursos externos</text>
+
+  <rect x="920" y="944" width="830" height="171" rx="14" class="lane"/>
+  <text x="946" y="979" class="section-title">Acción posterior a detecciones</text>
+  <rect x="946" y="998" width="332" height="88" rx="10" class="card"/>
+  <text x="964" y="1028" class="card-title">Confirmación de usuario</text>
+  <text x="964" y="1052" class="small">Solo si ClamAV reporta detecciones</text>
+  <text x="964" y="1075" class="small">puede aceptar o rechazar cuarentena</text>
+  <rect x="1310" y="998" width="404" height="88" rx="10" class="threat"/>
+  <text x="1328" y="1028" class="card-title">Cuarentena segura</text>
+  <text x="1328" y="1052" class="mono">re-escanea → --move → actualiza JSON/HTML</text>
+  <text x="1328" y="1075" class="small">no borra directamente; reporta el resultado</text>
+  <path d="M1100 878 V926 H1110 V998" class="line-green"/>
+  <path d="M1278 1042 H1310" class="line-green"/>
+  <path d="M795 878 V923 H665 V998" class="line-blue"/>
+
+  <!-- Cross-cutting boundaries and repository map -->
+  <rect x="50" y="1140" width="1700" height="220" rx="14" class="lane"/>
+  <text x="76" y="1176" class="section-title">Límites y componentes transversales</text>
+  <line x1="900" y1="1193" x2="900" y2="1336" class="divider"/>
+
+  <text x="78" y="1210" class="card-title">Seguridad y alcance</text>
+  <text x="78" y="1236" class="body">• Consentimiento explícito; no hay vigilancia continua ni análisis de otros equipos.</text>
+  <text x="78" y="1260" class="body">• Hallazgos son evidencia para verificar; no evalúa CVE/parches ni usa YARA.</text>
+  <text x="78" y="1284" class="body">• Errores/permisos dejan el análisis incompleto; “sin detecciones” no garantiza limpieza.</text>
+  <text x="78" y="1308" class="body">• Reportes permanecen locales; Groq es el único envío externo opt-in.</text>
+  <text x="78" y="1336" class="small">Un backend/API puede aparecer en documentación conceptual, pero no forma parte del agente Python actual.</text>
+
+  <text x="930" y="1210" class="card-title">Estructura y verificación</text>
+  <text x="930" y="1236" class="mono">src/netthreat_agent/ · gui.py · cli.py · __main__.py</text>
+  <text x="930" y="1260" class="mono">collector.py · scanner.py · findings.py · models.py · windows_security.py</text>
+  <text x="930" y="1284" class="mono">threat_scanner.py · clamav_scanner.py · windows_threat_scanner.py</text>
+  <text x="930" y="1308" class="mono">report_store/dashboard.py · threat_report_store/dashboard.py · groq_client.py</text>
+  <text x="930" y="1336" class="small">tests/test_agent.py · tests/test_threat_scan.py · psutil requerido; pytest opcional de desarrollo</text>
+</svg>
